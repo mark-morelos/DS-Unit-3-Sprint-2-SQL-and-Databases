@@ -1,24 +1,26 @@
+import os
 import psycopg2
+from dotenv import load_dotenv
 
-DB_NAME = 'yxonkvmp'
-DB_USER = 'yxonkvmp'
-DB_PASS = '6V84LRTxRrzrkW09nb69QigNUhoRvy-_'
-DB_HOST = 'lallah.db.elephantsql.com'
+# Load .env file and get credentials
+load_dotenv()
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASS = os.getenv("DB_PASS")
+DB_HOST = os.getenv("DB_HOST")
 
-# Connect to ElephantSQL - hosted PostgreSQL DB
+# Connect to ElephantSQL-hosted PostgreSQL DB
 conn = psycopg2.connect(dbname=DB_NAME,
                         user=DB_USER,
                         password=DB_PASS,
                         host=DB_HOST)
 
 cursor = conn.cursor()
-
 cursor.execute("SELECT * from test_table;")
-
 results = cursor.fetchall()
 # print(results)
 
-#### Connect to SQLite DB for RPG Data ####
+############ Connect to SQLite DB for RPG Data ####################
 
 import sqlite3
 
@@ -27,7 +29,7 @@ sl_cursor = sl_conn.cursor()
 characters = sl_cursor.execute('SELECT * FROM charactercreator_character;').fetchall()
 # print(characters)
 
-#### Create the Character Table in Postgres and Insert Data ####
+############ Create the Character Table in Postgres and Insert Data ##################
 
 create_character_table_query = '''
 CREATE TABLE IF NOT EXISTS rpg_characters (
@@ -42,22 +44,27 @@ CREATE TABLE IF NOT EXISTS rpg_characters (
     wisdom INT
 )
 '''
+
 cursor.execute(create_character_table_query)
 conn.commit()
 
-
+# Generate individual row insert queries
 for character in characters:
     insert_query = f'''INSERT INTO rpg_characters
     (character_id, name, level, exp, hp, strength, intelligence, dexterity, wisdom) VALUES
-    {character}
+    {character}   
     '''
     cursor.execute(insert_query)
 conn.commit()
 
-# insert_query = '''INSERT INTO rpg_characters
-# (character_id, name, level, exp, hp, strength, intelligence, dexterity, wisdom) VALUES'''
+# Generate one big insert query (10-20x faster than individual inserts)
+big_query = '''INSERT INTO rpg_characters
+(character_id, name, level, exp, hp, strength, intelligence, dexterity, wisdom) VALUES'''
 
-# for character in characters:
-#     big_query += f'{character},'
+for character in characters:
+    big_query += f' {character}, '
 
-# print(big_query)
+big_query = big_query.rstrip(',') + ';'   # Replace trailing ',' with a ';'
+
+# cursor.execute(big_query)
+# conn.commit()
