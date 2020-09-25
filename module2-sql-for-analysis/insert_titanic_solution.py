@@ -4,16 +4,14 @@ import psycopg2
 from psycopg2.extras import execute_values
 import pandas
 
-load_dotenv() #> loads contents of the .env file into the script's environment
+DB_NAME = 'zninzmrd'
+DB_USER = 'zninzmrd'
+DB_PASS = 'iOj0vECcKLDZ50DdidwUHsdkVzGj62KX'
+DB_HOST = 'lallah.db.elephantsql.com'
 
-DB_NAME = os.getenv("DB_NAME", default="OOPS")
-DB_USER = os.getenv("DB_USER", default="OOPS")
-DB_PASS = os.getenv("DB_PASS", default="OOPS")
-DB_HOST = os.getenv("DB_HOST", default="OOPS")
-
-CSV_FILEPATH = "titanic.csv"
+#CSV_FILEPATH = "titanic.csv"
 #CSV_FILEPATH = os.path.join(os.path.dirname(__file__), "titanic.csv")
-#CSV_FILEPATH = os.path.join(os.path.dirname(__file__), "..", "module2-sql-for-analysis", "titanic.csv")
+CSV_FILEPATH = os.path.join(os.path.dirname(__file__), "..", "module2-sql-for-analysis", "titanic.csv")
 
 #
 # CONNECT TO THE PG DATABASE
@@ -54,6 +52,15 @@ df = pandas.read_csv(CSV_FILEPATH)
 print(df.columns.tolist())
 #print(df.dtypes)
 #print(df.head())
+
+# to avoid PG insertion errors related to datatype mismatches (psycopg2.ProgrammingError: can't adapt type 'numpy.int64'),
+# ... we need to convert np.int64 columns to normal integers
+# ... https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.astype.html
+# ... https://stackoverflow.com/questions/34838378/dataframe-values-tolist-datatype
+# ... https://stackoverflow.com/questions/47423930/how-to-convert-pandas-dataframe-columns-to-native-python-data-types
+
+df["Survived"] = df["Survived"].values.astype(bool) # do this before converting to native types, because this actually converts to np.bool
+df = df.astype("object") # converts numpy dtypes to native python dtypes (avoids psycopg2.ProgrammingError: can't adapt type 'numpy.int64')
 
 #
 # INSERT DATA INTO THE PASSENGERS TABLE

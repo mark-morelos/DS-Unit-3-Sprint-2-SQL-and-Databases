@@ -1,4 +1,6 @@
 import psycopg2
+from psycopg2.extras import execute_values
+import pandas
 
 DB_NAME = 'zninzmrd'
 DB_USER = 'zninzmrd'
@@ -27,24 +29,32 @@ sl_cursor = sl_conn.cursor()
 passengers = sl_cursor.execute('SELECT * FROM titanic;').fetchall()
 # print(passengers)
 
-create_passenger_table_query = '''
-CREATE TABLE IF NOT EXISTS titanic_passenger_list (
-    index SERIAL PRIMARY KEY,
-    Survived INT,
-    Pclass INT,
-    Name VARCHAR(30),
-    Sex VARCHAR(6),
-    Age FLOAT(4),
-    Fare FLOAT(8)
-)
+query = '''
+CREATE TABLE IF NOT EXISTS passengers (
+    id SERIAL PRIMARY KEY,
+    survived bool,
+    pclass int,
+    name varchar,
+    sex varchar,
+    age int,
+    sib_spouse_count int,
+    parent_child_count int,
+    fare float8
+);
 '''
-cursor.execute(create_passenger_table_query)
-conn.commit()
+
+cursor.execute(query)
+
+CSV_FILEPATH = "titanic.csv"
 
 for passenger in passengers:
-    insert_query = f'''INSERT INTO titanic_passenger_list
-    (index, Survived, Pclass, Name, Sex, Age, Fare)VALUES
-    {passenger}
-    '''
-    cursor.execute(insert_query)
-conn.commit()
+    insert_passenger = """
+        INSERT INTO passengers
+        (Survived, Pclass, Name, Sex, Age, Siblings_Spouses_Aboard,
+        Parents_Children_Aboard, Fare)
+        VALUES """ + str(passenger[1:]) + ";"
+    cursor.execute(passengers)
+
+cursor.execute('SELECT * from passengers;')
+cursor.fetchall()
+conn.commit() # actually update the database
